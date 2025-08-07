@@ -25,7 +25,7 @@ function updateLeaderboard() {
 
 async function loadScores() {
   try {
-    const response = await fetch("scores.json");
+    const response = await fetch("scores.json", { cache: "no-store" });
     const remoteScores = await response.json();
     const localScores = JSON.parse(localStorage.getItem("scores") || "[]");
     const combined = remoteScores.concat(localScores);
@@ -112,6 +112,9 @@ syncButton.addEventListener("click", async () => {
       throw new Error(err.message || "Failed to update");
     }
 
+    scores = unique;
+    localStorage.removeItem("scores");
+    updateLeaderboard();
     syncStatus.textContent = "Upload successful";
   } catch (err) {
     console.error(err);
