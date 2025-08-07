@@ -70,17 +70,23 @@ syncButton.addEventListener("click", async () => {
   try {
     const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/scores.json?ref=${branch}`;
     const getRes = await fetch(getUrl, {
-      headers: { Authorization: `token ${token}` },
+      headers: {
+        Authorization: `token ${token}`,
+        Accept: "application/vnd.github+json",
+      },
     });
 
     let existing = [];
     let sha;
-    if (getRes.ok) {
+    if (getRes.status === 404) {
+      // scores.json doesn't exist yet
+    } else if (getRes.ok) {
       const file = await getRes.json();
       existing = JSON.parse(atob(file.content));
       sha = file.sha;
-    } else if (getRes.status !== 404) {
-      throw new Error("Failed to fetch scores.json");
+    } else {
+      const err = await getRes.json().catch(() => ({}));
+      throw new Error(err.message || `Failed to fetch scores.json: ${getRes.status}`);
     }
 
     const combined = existing.concat(localScores);
