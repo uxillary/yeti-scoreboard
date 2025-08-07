@@ -54,6 +54,11 @@ li {
   margin-top: 0.5rem;
 }
 
+#syncStatus {
+  min-height: 1.2rem;
+  margin-top: 0.5rem;
+}
+
 @media (max-width: 480px) {
   body {
     padding: 1rem;
