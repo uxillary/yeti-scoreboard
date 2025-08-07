@@ -54,13 +54,6 @@ li {
   margin-top: 0.5rem;
 }
 
-#config {
-  margin-top: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
 #syncStatus {
   min-height: 1.2rem;
   margin-top: 0.5rem;
