@@ -18,9 +18,21 @@
       <input type="number" id="score" placeholder="Score" required />
       <button type="submit">Submit</button>
     </form>
+    <section id="config">
+      <h2>GitHub Sync Config</h2>
+      <input type="text" id="owner" placeholder="Owner" />
+      <input type="text" id="repo" placeholder="Repo" />
+      <input type="text" id="branch" placeholder="Branch" value="main" />
+      <input type="password" id="token" placeholder="Token" />
+      <label for="mode">Mode:</label>
+      <select id="mode">
+        <option value="merge">Merge</option>
+        <option value="overwrite">Overwrite</option>
+      </select>
+    </section>
 
-    <!-- Placeholder: future GitHub sync logic will hook into this button -->
     <button id="syncButton">Sync Scores to GitHub</button>
+    <p id="syncStatus"></p>
 
     <section>
       <h2>Leaderboard</h2>
