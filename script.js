@@ -1,6 +1,7 @@
 const form = document.getElementById("scoreForm");
 const leaderboard = document.getElementById("leaderboard");
 const syncButton = document.getElementById("syncButton");
+const syncStatus = document.getElementById("syncStatus");
 const WORKER_URL = "https://yeti-sync.uxillary.workers.dev";
 
 let scores = [];
@@ -60,6 +61,7 @@ async function syncScores() {
   }
 
   try {
+    syncStatus.textContent = "Syncing...";
     const res = await fetch(WORKER_URL, {
       method: "POST",
       headers: {
@@ -68,19 +70,14 @@ async function syncScores() {
       },
       body: JSON.stringify({ scores: localScores, mode: "merge" }),
     });
-    const text = await res.text();
-    let data = {};
-    try {
-      data = JSON.parse(text);
-    } catch {}
+    const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.success) {
-      console.error("Upload failed", res.status, text);
-      throw new Error(data.error || `Upload failed: ${res.status} ${text}`);
-
-
+      console.error("Upload failed", res.status, data);
+      throw new Error(data.error || `Upload failed: ${res.status}`);
     }
     localStorage.removeItem("scores");
     await loadScores();
+    syncStatus.textContent = "Synced!";
     alert("\u2705 Synced!");
   } catch (err) {
     console.error("Sync failed", err);
