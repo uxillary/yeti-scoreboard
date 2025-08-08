@@ -3,13 +3,6 @@ const leaderboard = document.getElementById("leaderboard");
 const syncButton = document.getElementById("syncButton");
 const syncStatus = document.getElementById("syncStatus");
 
-const githubConfig = {
-  owner: "your-owner",
-  repo: "your-repo",
-  branch: "main",
-  token: "your-token",
-};
-
 let scores = [];
 
 function updateLeaderboard() {
@@ -53,14 +46,9 @@ form.addEventListener("submit", (e) => {
   }
 });
 
-syncButton.addEventListener("click", async () => {
-  const { owner, repo, branch, token } = githubConfig;
+async function syncScores() {
   const localScores = JSON.parse(localStorage.getItem("scores") || "[]");
 
-  if (!owner || !repo || !branch || !token) {
-    syncStatus.textContent = "Missing GitHub configuration.";
-    return;
-  }
   if (localScores.length === 0) {
     syncStatus.textContent = "No local scores to sync.";
     return;
@@ -68,64 +56,27 @@ syncButton.addEventListener("click", async () => {
 
   syncStatus.textContent = "Uploading...";
   try {
-    const getUrl = `https://api.github.com/repos/${owner}/${repo}/contents/scores.json?ref=${branch}`;
-    const getRes = await fetch(getUrl, {
+    const res = await fetch("https://<worker_url>", {
+      method: "POST",
       headers: {
-        Authorization: `token ${token}`,
-        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "x-api-key": "<ADMIN_SECRET>",
       },
+      body: JSON.stringify(localScores),
     });
-
-    let existing = [];
-    let sha;
-    if (getRes.status === 404) {
-      // scores.json doesn't exist yet
-    } else if (getRes.ok) {
-      const file = await getRes.json();
-      existing = JSON.parse(atob(file.content));
-      sha = file.sha;
-    } else {
-      const err = await getRes.json().catch(() => ({}));
-      throw new Error(err.message || `Failed to fetch scores.json: ${getRes.status}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || `Upload failed with status ${res.status}`);
     }
-
-    const combined = existing.concat(localScores);
-    const unique = Array.from(
-      new Map(combined.map((s) => [`${s.name}|${s.score}`, s])).values()
-    );
-    const encoded = btoa(JSON.stringify(unique, null, 2));
-
-    const putRes = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/contents/scores.json`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `token ${token}`,
-          "Content-Type": "application/json",
-          Accept: "application/vnd.github+json",
-        },
-        body: JSON.stringify({
-          message: "Update scores.json from Yeti Scoreboard",
-          content: encoded,
-          sha,
-          branch,
-        }),
-      }
-    );
-
-    if (!putRes.ok) {
-      const err = await putRes.json();
-      throw new Error(err.message || "Failed to update");
-    }
-
-    scores = unique;
     localStorage.removeItem("scores");
-    updateLeaderboard();
+    await loadScores();
     syncStatus.textContent = "Upload successful";
   } catch (err) {
     console.error(err);
     syncStatus.textContent = `Failed to update: ${err.message}`;
   }
-});
+}
+
+syncButton.addEventListener("click", syncScores);
 
 loadScores();
