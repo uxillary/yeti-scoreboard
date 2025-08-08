@@ -36,25 +36,22 @@ function hideBanner() {
   banner.classList.add("hidden");
 }
 
-function validateSetup() {
-  const valid =
-    CONFIG.WORKER_URL.startsWith("https://") &&
-    CONFIG.WORKER_URL.endsWith(".workers.dev");
+async function validateSetup() {
+  const valid = CONFIG.WORKER_URL.endsWith(".workers.dev");
   if (!valid) {
     console.error("Invalid Worker URL", CONFIG.WORKER_URL);
     showBanner(
-      `Worker unreachable. Check CONFIG.WORKER_URL (${CONFIG.WORKER_URL}) and Cloudflare deployment.`
+      "Worker unreachable. Check CONFIG.WORKER_URL and Cloudflare deployment."
     );
+    return;
   }
-}
-
-async function healthCheck() {
   try {
     await fetch(CONFIG.WORKER_URL, { method: "GET" });
     hideBanner();
-  } catch (_) {
+  } catch (err) {
+    console.error("Worker unreachable", err);
     showBanner(
-      `Worker unreachable. Check CONFIG.WORKER_URL (${CONFIG.WORKER_URL}) and Cloudflare deployment.`
+      "Worker unreachable. Check CONFIG.WORKER_URL and Cloudflare deployment."
     );
   }
 }
@@ -149,7 +146,11 @@ async function loadScores() {
 }
 
 async function syncScores() {
-  const adminKey = localStorage.getItem(CONFIG.ADMIN_KEY_STORAGE) || "";
+  const adminKey = (localStorage.getItem(CONFIG.ADMIN_KEY_STORAGE) || "").trim();
+  if (!adminKey) {
+    alert("Admin key not set. Press Ctrl+Shift+K to open Admin panel.");
+    return;
+  }
   const localScores = JSON.parse(localStorage.getItem("scores") || "[]");
   try {
     const res = await fetch(CONFIG.WORKER_URL, {
@@ -165,9 +166,10 @@ async function syncScores() {
       alert(`✅ Synced to KV! Total: ${localScores.length}`);
     } else {
       console.error("Sync failed", res.status, text);
-      throw new Error(text || res.statusText);
+      alert(`❌ Sync failed: ${res.status} ${text || res.statusText}`);
     }
   } catch (err) {
+    console.error("Sync failed", err);
     alert(`❌ Sync failed: ${err.message}`);
   }
 }
@@ -219,8 +221,9 @@ toggleBtn.addEventListener("click", () => {
 
 document.addEventListener("keydown", (e) => {
   if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "k") {
-    adminPanel.classList.toggle("hidden");
-    if (!adminPanel.classList.contains("hidden")) {
+    const hidden = adminPanel.style.display === "none";
+    adminPanel.style.display = hidden ? "flex" : "none";
+    if (hidden) {
       adminKeyInput.value =
         localStorage.getItem(CONFIG.ADMIN_KEY_STORAGE) || "";
       adminKeyInput.focus();
@@ -235,7 +238,7 @@ saveAdminKeyBtn.addEventListener("click", () => {
   const value = adminKeyInput.value.trim();
   localStorage.setItem(CONFIG.ADMIN_KEY_STORAGE, value);
   alert("Admin key saved.");
-  adminPanel.classList.add("hidden");
+  adminPanel.style.display = "none";
 });
 
 syncBtn.addEventListener("click", syncScores);
@@ -243,5 +246,4 @@ syncBtn.addEventListener("click", syncScores);
 nameInput.value = localStorage.getItem("playerName") || "";
 
 validateSetup();
-healthCheck();
 loadScores();

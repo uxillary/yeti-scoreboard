@@ -24,21 +24,6 @@ body {
   z-index: 10;
 }
 
-#adminPanel {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  background: #222;
-  padding: 1rem;
-  border: 1px solid #55e6a5;
-  border-radius: 4px;
-}
-
-#adminPanel input {
-  margin-bottom: 0.5rem;
-  width: 200px;
-}
-
 main {
   max-width: 600px;
   width: 100%;
@@ -143,6 +128,29 @@ li:hover {
 #toggleBtn {
   margin-top: 0.5rem;
   width: 100%;
+}
+
+#syncBtn {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 0.75rem;
+  border-radius: 6px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.logo svg .accent {
+  fill: #55e6a5;
+}
+
+.logo svg .snow {
+  fill: #fff;
 }
 
 @media (max-width: 480px) {
