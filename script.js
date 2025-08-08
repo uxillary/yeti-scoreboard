@@ -1,8 +1,7 @@
 const form = document.getElementById("scoreForm");
 const leaderboard = document.getElementById("leaderboard");
-const syncButton = document.getElementById("syncButton");
-const syncStatus = document.getElementById("syncStatus");
-const WORKER_URL = "https://yeti-sync.uxillary.workers.dev";
+const syncBtn = document.getElementById("syncBtn");
+const WORKER_URL = "https://yeti-kv-sync.uxillary.workers.dev";
 
 let scores = [];
 
@@ -19,17 +18,15 @@ function updateLeaderboard() {
 
 async function loadScores() {
   try {
-    const response = await fetch("scores.json", { cache: "no-store" });
-    const remoteScores = await response.json();
-    const localScores = JSON.parse(localStorage.getItem("scores") || "[]");
-    const combined = remoteScores.concat(localScores);
-    scores = Array.from(
-      new Map(combined.map((s) => [`${s.name}|${s.score}`, s])).values()
-    );
-    updateLeaderboard();
+    const res = await fetch(WORKER_URL, { cache: "no-store" });
+    const data = await res.json();
+    scores = Array.isArray(data) ? data : [];
+    localStorage.setItem("scores", JSON.stringify(scores));
   } catch (err) {
-    console.error("Unable to load scores.json", err);
+    console.error("Unable to load scores from KV", err);
+    scores = JSON.parse(localStorage.getItem("scores") || "[]");
   }
+  updateLeaderboard();
 }
 
 form.addEventListener("submit", (e) => {
@@ -39,9 +36,7 @@ form.addEventListener("submit", (e) => {
   if (name && !isNaN(score)) {
     const entry = { name, score };
     scores.push(entry);
-    const localScores = JSON.parse(localStorage.getItem("scores") || "[]");
-    localScores.push(entry);
-    localStorage.setItem("scores", JSON.stringify(localScores));
+    localStorage.setItem("scores", JSON.stringify(scores));
     updateLeaderboard();
     form.reset();
   }
@@ -55,36 +50,27 @@ async function syncScores() {
     alert("\u274C Sync failed: missing API key");
     return;
   }
-  if (localScores.length === 0) {
-    alert("\u274C Sync failed: no local scores to sync");
-    return;
-  }
 
   try {
-    syncStatus.textContent = "Syncing...";
     const res = await fetch(WORKER_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
       },
-      body: JSON.stringify({ scores: localScores, mode: "merge" }),
+      body: JSON.stringify(localScores),
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.success) {
-      console.error("Upload failed", res.status, data);
-      throw new Error(data.error || `Upload failed: ${res.status}`);
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || res.statusText);
     }
-    localStorage.removeItem("scores");
-    await loadScores();
-    syncStatus.textContent = "Synced!";
-    alert("\u2705 Synced!");
+    alert(`\u2705 Synced to KV! Total: ${localScores.length}`);
   } catch (err) {
-    console.error("Sync failed", err);
-    syncStatus.textContent = `Failed to update: ${err.message}`;
+    alert(`\u274C Sync failed: ${err.message}`);
   }
 }
 
-syncButton.addEventListener("click", syncScores);
+syncBtn.addEventListener("click", syncScores);
 
 loadScores();
+
