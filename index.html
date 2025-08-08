@@ -9,8 +9,8 @@
 </head>
 <body>
   <div id="banner" class="banner hidden"></div>
-  <div id="adminPanel" class="hidden">
-    <input type="password" id="adminKey" placeholder="Admin API Key" />
+  <div id="adminPanel" style="display:none; gap:.5rem; margin:.5rem 0;">
+    <input id="adminKey" type="password" placeholder="Admin API key" />
     <button id="saveAdminKey">Save</button>
   </div>
   <main>
@@ -22,13 +22,19 @@
       height="412"
       allowfullscreen
     ></iframe>
-    <h1>🏔️ Yeti Scoreboard</h1>
+    <h1 class="logo">
+      <svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true">
+        <path class="accent" d="M3 20h18L12 4 3 20z"></path>
+        <path class="snow" d="M12 8l4 8H8l4-8z"></path>
+      </svg>
+      Yeti Scoreboard
+    </h1>
     <form id="scoreForm">
       <input type="text" id="name" placeholder="Name" required />
       <input type="number" id="score" placeholder="Score" required />
       <button type="submit">Submit</button>
     </form>
-    <button id="syncBtn">sync</button>
+    <button id="syncBtn">Sync</button>
 
     <section>
       <h2>Leaderboard <small id="lastUpdated"></small></h2>
