@@ -76,6 +76,10 @@ function colorFromName(name) {
   return `hsl(${h % 360},70%,70%)`;
 }
 
+function displayScore(score) {
+  return score % 1 === 0 ? score.toString() : score.toFixed(1);
+}
+
 function updateLeaderboard(data = scores) {
   leaderboard.innerHTML = "";
   const me = localStorage.getItem("playerName") || "";
@@ -105,14 +109,14 @@ function updateLeaderboard(data = scores) {
 
     const scoreSpan = document.createElement("span");
     scoreSpan.className = "score";
-    scoreSpan.textContent = entry.score;
+    scoreSpan.textContent = displayScore(entry.score);
 
     li.append(rankSpan, avatar, nameSpan, scoreSpan);
 
     if (entry.delta && entry.delta > 0) {
       const deltaSpan = document.createElement("span");
       deltaSpan.className = "delta";
-      deltaSpan.textContent = `+${entry.delta}`;
+      deltaSpan.textContent = `+${displayScore(entry.delta)}`;
       li.appendChild(deltaSpan);
       delete entry.delta;
     }
@@ -135,7 +139,9 @@ async function loadScores() {
       },
     });
     const data = await res.json();
-    scores = Array.isArray(data) ? data : [];
+    scores = Array.isArray(data)
+      ? data.map((s) => ({ ...s, score: parseFloat(s.score) }))
+      : [];
     localStorage.setItem("scores", JSON.stringify(scores));
     if (lastUpdatedEl) {
       const t = new Date();
@@ -149,14 +155,16 @@ async function loadScores() {
     console.error("Unable to load scores from KV", err);
     const cached = localStorage.getItem("scores");
     if (cached) {
-      scores = JSON.parse(cached);
+      scores = JSON.parse(cached).map((s) => ({ ...s, score: parseFloat(s.score) }));
       updateLeaderboard(scores);
     }
   }
 }
 
 async function syncScores() {
-  const localScores = JSON.parse(localStorage.getItem("scores") || "[]");
+  const localScores = JSON.parse(localStorage.getItem("scores") || "[]").map(
+    (s) => ({ ...s, score: parseFloat(s.score) })
+  );
   try {
     const res = await fetch(CONFIG.WORKER_URL, {
       method: "POST",
@@ -182,13 +190,13 @@ async function syncScores() {
 form.addEventListener("submit", (e) => {
   e.preventDefault();
   const name = nameInput.value.trim();
-  const score = parseInt(scoreInput.value, 10);
+  const score = parseFloat(scoreInput.value);
   if (!name || isNaN(score)) return;
 
   const existing = scores.find((s) => s.name === name);
   if (existing) {
     if (score > existing.score) {
-      existing.delta = score - existing.score;
+      existing.delta = parseFloat((score - existing.score).toFixed(1));
       existing.score = score;
     } else {
       existing.delta = 0;
