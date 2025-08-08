@@ -3,10 +3,12 @@
  */
 const CONFIG = {
   WORKER_URL: "https://yeti-kv-sync.anonymity.workers.dev",
-  ADMIN_KEY_STORAGE: "yeti_admin_key",
+  ADMIN_KEY: "yeti_38ksL9Q2mA!",
   TOP_N: 10,
   COOLDOWN_MS: 4000,
 };
+
+console.log("⚠ Using hardcoded admin key — scoreboard is not secure.");
 
 // DOM elements
 const form = document.getElementById("scoreForm");
@@ -18,9 +20,6 @@ const toggleBtn = document.getElementById("toggleBtn");
 const lastUpdatedEl = document.getElementById("lastUpdated");
 const syncBtn = document.getElementById("syncBtn");
 const banner = document.getElementById("banner");
-const adminPanel = document.getElementById("adminPanel");
-const adminKeyInput = document.getElementById("adminKey");
-const saveAdminKeyBtn = document.getElementById("saveAdminKey");
 
 let scores = [];
 let showAll = false;
@@ -46,7 +45,13 @@ async function validateSetup() {
     return;
   }
   try {
-    await fetch(CONFIG.WORKER_URL, { method: "GET" });
+    await fetch(CONFIG.WORKER_URL, {
+      method: "GET",
+      headers: {
+        "x-api-key": CONFIG.ADMIN_KEY,
+        "Content-Type": "application/json",
+      },
+    });
     hideBanner();
   } catch (err) {
     console.error("Worker unreachable", err);
@@ -123,7 +128,12 @@ function updateLeaderboard(data = scores) {
 
 async function loadScores() {
   try {
-    const res = await fetch(CONFIG.WORKER_URL);
+    const res = await fetch(CONFIG.WORKER_URL, {
+      headers: {
+        "x-api-key": CONFIG.ADMIN_KEY,
+        "Content-Type": "application/json",
+      },
+    });
     const data = await res.json();
     scores = Array.isArray(data) ? data : [];
     localStorage.setItem("scores", JSON.stringify(scores));
@@ -146,18 +156,13 @@ async function loadScores() {
 }
 
 async function syncScores() {
-  const adminKey = (localStorage.getItem(CONFIG.ADMIN_KEY_STORAGE) || "").trim();
-  if (!adminKey) {
-    alert("Admin key not set. Press Ctrl+Shift+K to open Admin panel.");
-    return;
-  }
   const localScores = JSON.parse(localStorage.getItem("scores") || "[]");
   try {
     const res = await fetch(CONFIG.WORKER_URL, {
       method: "POST",
       headers: {
+        "x-api-key": CONFIG.ADMIN_KEY,
         "Content-Type": "application/json",
-        "x-api-key": adminKey,
       },
       body: JSON.stringify(localScores),
     });
@@ -220,25 +225,9 @@ toggleBtn.addEventListener("click", () => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "k") {
-    const hidden = adminPanel.style.display === "none";
-    adminPanel.style.display = hidden ? "flex" : "none";
-    if (hidden) {
-      adminKeyInput.value =
-        localStorage.getItem(CONFIG.ADMIN_KEY_STORAGE) || "";
-      adminKeyInput.focus();
-    }
-  }
   if (e.ctrlKey && e.key === "Enter") {
     syncScores();
   }
-});
-
-saveAdminKeyBtn.addEventListener("click", () => {
-  const value = adminKeyInput.value.trim();
-  localStorage.setItem(CONFIG.ADMIN_KEY_STORAGE, value);
-  alert("Admin key saved.");
-  adminPanel.style.display = "none";
 });
 
 syncBtn.addEventListener("click", syncScores);
