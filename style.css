@@ -8,6 +8,33 @@ body {
   justify-content: center;
 }
 
+.hidden {
+  display: none;
+}
+
+.banner {
+  background: #c0392b;
+  color: #fff;
+  padding: 0.5rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+#adminPanel {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  background: #222;
+  padding: 1rem;
+  border: 1px solid #55e6a5;
+  border-radius: 4px;
+}
+
+#adminPanel input {
+  margin-bottom: 0.5rem;
+  width: 200px;
+}
+
 main {
   max-width: 600px;
   width: 100%;
