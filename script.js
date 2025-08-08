@@ -64,15 +64,20 @@ async function syncScores() {
       },
       body: JSON.stringify(localScores),
     });
-    const data = await res.json().catch(() => ({}));
+    const text = await res.text();
+    let data = {};
+    try {
+      data = JSON.parse(text);
+    } catch {}
     if (!res.ok || !data.success) {
-      throw new Error(data.error || `Upload failed with status ${res.status}`);
+      console.error("Upload failed", res.status, text);
+      throw new Error(data.error || `Upload failed: ${res.status} ${text}`);
     }
     localStorage.removeItem("scores");
     await loadScores();
     syncStatus.textContent = "Upload successful";
   } catch (err) {
-    console.error(err);
+    console.error("Sync failed", err);
     syncStatus.textContent = `Failed to update: ${err.message}`;
   }
 }
