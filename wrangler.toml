@@ -1,0 +1,11 @@
+name = "yeti-scoreboard"
+main = "worker.js"
+compatibility_date = "2024-08-07"
+
+[vars]
+ALLOWED_ORIGIN = ""
+ADMIN_SECRET = ""
+GITHUB_OWNER = ""
+GITHUB_REPO = ""
+GITHUB_BRANCH = ""
+# Note: GITHUB_TOKEN is set via `wrangler secret put GITHUB_TOKEN`
