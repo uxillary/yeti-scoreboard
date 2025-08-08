@@ -20,10 +20,33 @@ const toggleBtn = document.getElementById("toggleBtn");
 const lastUpdatedEl = document.getElementById("lastUpdated");
 const syncBtn = document.getElementById("syncBtn");
 const banner = document.getElementById("banner");
+const statusMessage = document.getElementById("status-message");
 
 let scores = [];
 let showAll = false;
 let cooldownTimer;
+let currentTop;
+
+function showStatus(message, type = "info") {
+  if (!statusMessage) return;
+  statusMessage.textContent = message;
+  statusMessage.className = type;
+  statusMessage.classList.add("show");
+  clearTimeout(statusMessage._timeout);
+  statusMessage._timeout = setTimeout(() => {
+    statusMessage.classList.remove("show");
+  }, 4000);
+}
+
+function launchConfetti() {
+  if (typeof confetti !== "function") return;
+  confetti({
+    particleCount: 120,
+    spread: 70,
+    origin: { x: 0.5, y: 0 },
+    ticks: 150,
+  });
+}
 
 function showBanner(message) {
   if (!banner) return;
@@ -86,6 +109,12 @@ function updateLeaderboard(data = scores) {
   const sorted = [...data].sort((a, b) => b.score - a.score);
   const limit = showAll ? sorted.length : CONFIG.TOP_N;
 
+  const newTop = sorted[0] ? sorted[0].name : undefined;
+  if (currentTop && newTop && newTop !== currentTop) {
+    launchConfetti();
+  }
+  currentTop = newTop;
+
   sorted.slice(0, limit).forEach((entry, index) => {
     const li = document.createElement("li");
     li.classList.add("fade-in");
@@ -113,12 +142,26 @@ function updateLeaderboard(data = scores) {
 
     li.append(rankSpan, avatar, nameSpan, scoreSpan);
 
+    if (index === 0) {
+      const trophy = document.createElement("span");
+      trophy.textContent = "\ud83c\udfc6"; // trophy emoji
+      li.appendChild(trophy);
+    }
+
     if (entry.delta && entry.delta > 0) {
       const deltaSpan = document.createElement("span");
       deltaSpan.className = "delta";
       deltaSpan.textContent = `+${displayScore(entry.delta)}`;
       li.appendChild(deltaSpan);
       delete entry.delta;
+    }
+
+    if (entry.updated) {
+      li.classList.add("score-updated");
+      li.addEventListener("animationend", () =>
+        li.classList.remove("score-updated")
+      );
+      delete entry.updated;
     }
 
     leaderboard.appendChild(li);
@@ -165,6 +208,7 @@ async function syncScores() {
   const localScores = JSON.parse(localStorage.getItem("scores") || "[]").map(
     (s) => ({ ...s, score: parseFloat(s.score) })
   );
+  showStatus("Syncing scores...", "info");
   try {
     const res = await fetch(CONFIG.WORKER_URL, {
       method: "POST",
@@ -176,14 +220,17 @@ async function syncScores() {
     });
     const text = await res.text();
     if (res.ok) {
-      alert(`✅ Synced to KV! Total: ${localScores.length}`);
+      showStatus("Scores synced successfully ✅", "success");
     } else {
       console.error("Sync failed", res.status, text);
-      alert(`❌ Sync failed: ${res.status} ${text || res.statusText}`);
+      showStatus(
+        `Sync failed: ${res.status} ${text || res.statusText}`,
+        "error"
+      );
     }
   } catch (err) {
     console.error("Sync failed", err);
-    alert(`❌ Sync failed: ${err.message}`);
+    showStatus(`Sync failed: ${err.message}`, "error");
   }
 }
 
@@ -198,16 +245,18 @@ form.addEventListener("submit", (e) => {
     if (score > existing.score) {
       existing.delta = parseFloat((score - existing.score).toFixed(1));
       existing.score = score;
+      existing.updated = true;
     } else {
       existing.delta = 0;
     }
   } else {
-    scores.push({ name, score, delta: 0 });
+    scores.push({ name, score, delta: 0, updated: true });
   }
 
   localStorage.setItem("scores", JSON.stringify(scores));
   localStorage.setItem("playerName", name);
   updateLeaderboard(scores);
+  showStatus("Score submitted!", "success");
 
   form.reset();
   nameInput.value = name;

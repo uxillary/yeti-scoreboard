@@ -58,6 +58,34 @@ button {
   cursor: pointer;
 }
 
+#status-message {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#status-message.show {
+  opacity: 1;
+  transform: none;
+}
+
+#status-message.success {
+  background: #2ecc71;
+}
+
+#status-message.error {
+  background: #e74c3c;
+}
+
+#status-message.info {
+  background: #3498db;
+}
+
 input:focus,
 button:focus {
   outline: 2px solid #55e6a5;
@@ -77,11 +105,12 @@ li {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, transform 0.2s;
 }
 
 li:hover {
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transform: scale(1.02);
+  box-shadow: 0 2px 6px rgba(255, 255, 255, 0.2);
 }
 
 .avatar {
@@ -99,6 +128,7 @@ li:hover {
   color: #55e6a5;
   font-size: 0.8rem;
   margin-left: 0.25rem;
+  animation: floatUp 0.8s ease-out forwards;
 }
 
 .delta::before {
@@ -112,6 +142,30 @@ li:hover {
 
 .fade-in {
   animation: fadeSlide 0.3s ease-in;
+}
+
+@keyframes scoreFlash {
+  from {
+    background: #ffeaa7;
+  }
+  to {
+    background: #222;
+  }
+}
+
+li.score-updated {
+  animation: scoreFlash 1s ease-out;
+}
+
+@keyframes floatUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }
 
 @keyframes fadeSlide {
