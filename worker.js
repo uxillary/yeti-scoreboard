@@ -65,10 +65,17 @@ export default {
         sha = file.sha;
       } else {
         const errText = await getRes.text();
-        return new Response(JSON.stringify({ success: false, error: `Failed to fetch scores.json: ${errText}` }), {
-          status: getRes.status,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        });
+        console.error('Failed to fetch scores.json', getRes.status, errText);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `GitHub fetch failed: ${getRes.status} ${errText}`,
+          }),
+          {
+            status: getRes.status,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          }
+        );
       }
 
       const encoded = btoa(JSON.stringify(scores, null, 2));
@@ -86,21 +93,32 @@ export default {
       });
 
       if (!putRes.ok) {
-        const err = await putRes.json().catch(() => ({}));
-        return new Response(JSON.stringify({ success: false, error: err.message || 'Failed to update scores.json' }), {
-          status: putRes.status,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-        });
+        const errText = await putRes.text();
+        console.error('Failed to update scores.json', putRes.status, errText);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `GitHub update failed: ${putRes.status} ${errText}`,
+          }),
+          {
+            status: putRes.status,
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          }
+        );
       }
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
       });
     } catch (err) {
-      return new Response(JSON.stringify({ success: false, error: err.message }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders },
-      });
+      console.error('Unexpected error while updating scores', err);
+      return new Response(
+        JSON.stringify({ success: false, error: err.message }),
+        {
+          status: 500,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        }
+      );
     }
   },
 };

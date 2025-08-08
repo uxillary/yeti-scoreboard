@@ -68,16 +68,23 @@ async function syncScores() {
       },
       body: JSON.stringify({ scores: localScores, mode: "merge" }),
     });
-    const data = await res.json().catch(() => ({}));
+    const text = await res.text();
+    let data = {};
+    try {
+      data = JSON.parse(text);
+    } catch {}
     if (!res.ok || !data.success) {
-      throw new Error(data.error || `status ${res.status}`);
+      console.error("Upload failed", res.status, text);
+      throw new Error(data.error || `Upload failed: ${res.status} ${text}`);
+
+
     }
     localStorage.removeItem("scores");
     await loadScores();
     alert("\u2705 Synced!");
   } catch (err) {
-    console.error(err);
-    alert(`\u274C Sync failed: ${err.message}`);
+    console.error("Sync failed", err);
+    syncStatus.textContent = `Failed to update: ${err.message}`;
   }
 }
 
