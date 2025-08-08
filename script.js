@@ -1,7 +1,7 @@
 const form = document.getElementById("scoreForm");
 const leaderboard = document.getElementById("leaderboard");
 const syncButton = document.getElementById("syncButton");
-const syncStatus = document.getElementById("syncStatus");
+const WORKER_URL = "https://yeti-sync.uxillary.workers.dev";
 
 let scores = [];
 
@@ -47,22 +47,26 @@ form.addEventListener("submit", (e) => {
 });
 
 async function syncScores() {
+  const apiKey = localStorage.getItem("yeti_admin_key");
   const localScores = JSON.parse(localStorage.getItem("scores") || "[]");
 
+  if (!apiKey) {
+    alert("\u274C Sync failed: missing API key");
+    return;
+  }
   if (localScores.length === 0) {
-    syncStatus.textContent = "No local scores to sync.";
+    alert("\u274C Sync failed: no local scores to sync");
     return;
   }
 
-  syncStatus.textContent = "Uploading...";
   try {
-    const res = await fetch("https://<worker_url>", {
+    const res = await fetch(WORKER_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": "<ADMIN_SECRET>",
+        "x-api-key": apiKey,
       },
-      body: JSON.stringify(localScores),
+      body: JSON.stringify({ scores: localScores, mode: "merge" }),
     });
     const text = await res.text();
     let data = {};
@@ -72,10 +76,12 @@ async function syncScores() {
     if (!res.ok || !data.success) {
       console.error("Upload failed", res.status, text);
       throw new Error(data.error || `Upload failed: ${res.status} ${text}`);
+
+
     }
     localStorage.removeItem("scores");
     await loadScores();
-    syncStatus.textContent = "Upload successful";
+    alert("\u2705 Synced!");
   } catch (err) {
     console.error("Sync failed", err);
     syncStatus.textContent = `Failed to update: ${err.message}`;
