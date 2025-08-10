@@ -14,34 +14,46 @@ console.log("⚠ Using hardcoded admin key — scoreboard is not secure.");
 const form = document.getElementById("scoreForm");
 const nameInput = document.getElementById("name");
 const scoreInput = document.getElementById("score");
-const submitBtn = form.querySelector("button[type='submit']");
+const submitBtn = document.getElementById("submitBtn");
 const leaderboard = document.getElementById("leaderboard");
 const toggleBtn = document.getElementById("toggleBtn");
 const lastUpdatedEl = document.getElementById("lastUpdated");
 const syncBtn = document.getElementById("syncBtn");
+const downloadBtn = document.getElementById("downloadBtn");
 const banner = document.getElementById("banner");
-const statusMessage = document.getElementById("status-message");
+const statusEl = document.getElementById("status");
 
 let scores = [];
 let showAll = false;
 let cooldownTimer;
-let currentTop;
+let previousLeaderName;
 
-function showStatus(message, type = "info") {
-  if (!statusMessage) return;
-  statusMessage.textContent = message;
-  statusMessage.className = type;
-  statusMessage.classList.add("show");
-  clearTimeout(statusMessage._timeout);
-  statusMessage._timeout = setTimeout(() => {
-    statusMessage.classList.remove("show");
+// simple score formatter
+const fmt = (s) => (s % 1 === 0 ? String(s) : s.toFixed(1));
+
+/**
+ * Display status messages without popups.
+ */
+function setStatus(message, type = "info") {
+  if (!statusEl) return;
+  statusEl.textContent = message;
+  statusEl.className = type + " show";
+  clearTimeout(statusEl._timeout);
+  statusEl._timeout = setTimeout(() => {
+    statusEl.classList.remove("show");
   }, 4000);
+}
+
+// toggle spinner inside buttons
+function setLoading(btn, loading) {
+  if (!btn) return;
+  btn.classList.toggle("loading", loading);
 }
 
 function launchConfetti() {
   if (typeof confetti !== "function") return;
   confetti({
-    particleCount: 120,
+    particleCount: 160,
     spread: 70,
     origin: { x: 0.5, y: 0 },
     ticks: 150,
@@ -99,25 +111,25 @@ function colorFromName(name) {
   return `hsl(${h % 360},70%,70%)`;
 }
 
-function displayScore(score) {
-  return score % 1 === 0 ? score.toString() : score.toFixed(1);
-}
-
 function updateLeaderboard(data = scores) {
   leaderboard.innerHTML = "";
   const me = localStorage.getItem("playerName") || "";
   const sorted = [...data].sort((a, b) => b.score - a.score);
   const limit = showAll ? sorted.length : CONFIG.TOP_N;
 
-  const newTop = sorted[0] ? sorted[0].name : undefined;
-  if (currentTop && newTop && newTop !== currentTop) {
-    launchConfetti();
-  }
-  currentTop = newTop;
+  // determine ties
+  const ties = new Set();
+  sorted.forEach((e, i) => {
+    if (i > 0 && e.score === sorted[i - 1].score) {
+      ties.add(e.name);
+      ties.add(sorted[i - 1].name);
+    }
+  });
 
   sorted.slice(0, limit).forEach((entry, index) => {
     const li = document.createElement("li");
     li.classList.add("fade-in");
+    if (index === 0) li.classList.add("first");
     if (entry.name === me) li.classList.add("me");
 
     const rank =
@@ -135,23 +147,30 @@ function updateLeaderboard(data = scores) {
 
     const nameSpan = document.createElement("span");
     nameSpan.textContent = entry.name;
+    if (ties.has(entry.name)) {
+      const tie = document.createElement("span");
+      tie.className = "tie-badge";
+      tie.textContent = "tie";
+      nameSpan.appendChild(tie);
+    }
 
     const scoreSpan = document.createElement("span");
     scoreSpan.className = "score";
-    scoreSpan.textContent = displayScore(entry.score);
+    scoreSpan.textContent = fmt(entry.score);
 
     li.append(rankSpan, avatar, nameSpan, scoreSpan);
 
     if (index === 0) {
       const trophy = document.createElement("span");
-      trophy.textContent = "\ud83c\udfc6"; // trophy emoji
+      trophy.className = "trophy";
+      trophy.textContent = "🏆";
       li.appendChild(trophy);
     }
 
     if (entry.delta && entry.delta > 0) {
       const deltaSpan = document.createElement("span");
       deltaSpan.className = "delta";
-      deltaSpan.textContent = `+${displayScore(entry.delta)}`;
+      deltaSpan.textContent = `+${fmt(entry.delta)}`;
       li.appendChild(deltaSpan);
       delete entry.delta;
     }
@@ -182,9 +201,18 @@ async function loadScores() {
       },
     });
     const data = await res.json();
-    scores = Array.isArray(data)
+    const newScores = Array.isArray(data)
       ? data.map((s) => ({ ...s, score: parseFloat(s.score) }))
       : [];
+
+    // diff against existing scores
+    const oldMap = new Map(scores.map((s) => [s.name, s.score]));
+    newScores.forEach((s) => {
+      const prev = oldMap.get(s.name);
+      if (prev === undefined || prev !== s.score) s.updated = true;
+    });
+
+    scores = newScores;
     localStorage.setItem("scores", JSON.stringify(scores));
     if (lastUpdatedEl) {
       const t = new Date();
@@ -194,6 +222,7 @@ async function loadScores() {
       })}`;
     }
     updateLeaderboard(scores);
+    checkLeaderChange(scores);
   } catch (err) {
     console.error("Unable to load scores from KV", err);
     const cached = localStorage.getItem("scores");
@@ -204,46 +233,56 @@ async function loadScores() {
   }
 }
 
-async function syncScores() {
-  const localScores = JSON.parse(localStorage.getItem("scores") || "[]").map(
-    (s) => ({ ...s, score: parseFloat(s.score) })
-  );
-  showStatus("Syncing scores...", "info");
-  try {
-    const res = await fetch(CONFIG.WORKER_URL, {
-      method: "POST",
-      headers: {
-        "x-api-key": CONFIG.ADMIN_KEY,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(localScores),
-    });
+/**
+ * POST the current scores array to the Worker.
+ */
+async function postScores(data) {
+  const res = await fetch(CONFIG.WORKER_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": CONFIG.ADMIN_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
     const text = await res.text();
-    if (res.ok) {
-      showStatus("Scores synced successfully ✅", "success");
-    } else {
-      console.error("Sync failed", res.status, text);
-      showStatus(
-        `Sync failed: ${res.status} ${text || res.statusText}`,
-        "error"
-      );
-    }
-  } catch (err) {
-    console.error("Sync failed", err);
-    showStatus(`Sync failed: ${err.message}`, "error");
+    throw new Error(text || res.statusText);
   }
 }
 
-form.addEventListener("submit", (e) => {
+async function syncScores() {
+  setStatus("Syncing...", "info");
+  setLoading(syncBtn, true);
+  try {
+    await postScores(scores);
+    setStatus("Scores synced ✅", "success");
+    checkLeaderChange(scores);
+  } catch (err) {
+    console.error("Sync failed", err);
+    setStatus(`Sync failed: ${err.message}`, "error");
+  } finally {
+    setLoading(syncBtn, false);
+  }
+}
+
+form.addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = nameInput.value.trim();
-  const score = parseFloat(scoreInput.value);
-  if (!name || isNaN(score)) return;
+  const scoreStr = scoreInput.value.trim();
+  const score = parseFloat(scoreStr);
+  const valid = /^\d{1,4}(\.\d)?$/.test(scoreStr);
+  if (!name || !valid || isNaN(score) || score < 0 || score > 2000) {
+    setStatus("Invalid input", "error");
+    scoreInput.focus();
+    return;
+  }
 
+  const prev = scores.map((s) => ({ ...s }));
   const existing = scores.find((s) => s.name === name);
   if (existing) {
     if (score > existing.score) {
-      existing.delta = parseFloat((score - existing.score).toFixed(1));
+      existing.delta = parseFloat(fmt(score - existing.score));
       existing.score = score;
       existing.updated = true;
     } else {
@@ -256,11 +295,29 @@ form.addEventListener("submit", (e) => {
   localStorage.setItem("scores", JSON.stringify(scores));
   localStorage.setItem("playerName", name);
   updateLeaderboard(scores);
-  showStatus("Score submitted!", "success");
 
-  form.reset();
-  nameInput.value = name;
+  setStatus("Syncing...", "info");
+  setLoading(submitBtn, true);
+  try {
+    await postScores(scores);
+    setStatus("Scores synced ✅", "success");
+    checkLeaderChange(scores);
+  } catch (err) {
+    console.error("Submit failed", err);
+    scores = prev;
+    localStorage.setItem("scores", JSON.stringify(scores));
+    updateLeaderboard(scores);
+    setStatus(`Sync failed: ${err.message}`, "error");
+  } finally {
+    setLoading(submitBtn, false);
+    form.reset();
+    nameInput.value = name;
+    scoreInput.focus();
+    startCooldown();
+  }
+});
 
+function startCooldown() {
   let remaining = CONFIG.COOLDOWN_MS / 1000;
   submitBtn.disabled = true;
   submitBtn.textContent = `Wait (${remaining})`;
@@ -274,7 +331,7 @@ form.addEventListener("submit", (e) => {
       submitBtn.textContent = "Submit";
     }
   }, 1000);
-});
+}
 
 toggleBtn.addEventListener("click", () => {
   showAll = !showAll;
@@ -288,8 +345,32 @@ document.addEventListener("keydown", (e) => {
 });
 
 syncBtn.addEventListener("click", syncScores);
+downloadBtn.addEventListener("click", downloadCSV);
+
+function downloadCSV() {
+  const rows = ["name,score"]; // header
+  scores
+    .slice()
+    .sort((a, b) => b.score - a.score)
+    .forEach((s) => rows.push(`${s.name},${fmt(s.score)}`));
+  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "scores.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 
 nameInput.value = localStorage.getItem("playerName") || "";
 
 validateSetup();
 loadScores();
+setInterval(loadScores, 25000);
+
+function checkLeaderChange(data) {
+  const leader = data[0] ? data[0].name : undefined;
+  if (previousLeaderName && leader && leader !== previousLeaderName) {
+    launchConfetti();
+  }
+  previousLeaderName = leader;
+}

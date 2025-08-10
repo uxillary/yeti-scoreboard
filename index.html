@@ -9,15 +9,7 @@
 </head>
 <body>
   <div id="banner" class="banner hidden"></div>
-  <main>
-    <iframe
-      src="https://www.gameflare.com/embed/yeti-sports-bloody/"
-      frameborder="0"
-      scrolling="no"
-      width="610"
-      height="412"
-      allowfullscreen
-    ></iframe>
+  <header class="header">
     <h1 class="logo">
       <svg viewBox="0 0 24 24" width="32" height="32" aria-hidden="true">
         <path class="accent" d="M3 20h18L12 4 3 20z"></path>
@@ -25,13 +17,33 @@
       </svg>
       Yeti Scoreboard
     </h1>
-    <form id="scoreForm">
-      <input type="text" id="name" placeholder="Name" required />
-      <input type="number" id="score" placeholder="Score" step="any" required />
-      <button type="submit">Submit</button>
-    </form>
-    <button id="syncBtn">Sync</button>
-    <div id="status-message" class="hidden"></div>
+  </header>
+  <hr class="divider" />
+  <main>
+    <div class="game-wrapper">
+      <iframe
+        src="https://www.gameflare.com/embed/yeti-sports-bloody/"
+        frameborder="0"
+        scrolling="no"
+        allowfullscreen
+      ></iframe>
+    </div>
+    <div class="card">
+      <form id="scoreForm">
+        <input type="text" id="name" placeholder="Name" required />
+        <input
+          type="number"
+          id="score"
+          placeholder="Score"
+          step="any"
+          required
+        />
+        <button type="submit" class="primary" id="submitBtn">Submit</button>
+      </form>
+      <button id="syncBtn" class="secondary">Sync</button>
+      <button id="downloadBtn" class="secondary">Download CSV</button>
+      <div id="status" aria-live="polite"></div>
+    </div>
 
     <section>
       <h2>Leaderboard <small id="lastUpdated"></small></h2>
