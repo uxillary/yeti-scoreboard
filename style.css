@@ -3,7 +3,7 @@ body {
   color: #eee;
   font-family: 'Courier New', monospace;
   margin: 0;
-  padding: 2rem;
+  padding: 0 1rem 2rem;
   display: flex;
   justify-content: center;
 }
@@ -24,12 +24,6 @@ body {
   z-index: 10;
 }
 
-main {
-  max-width: 600px;
-  width: 100%;
-  margin-top: 3rem;
-}
-
 h1,
 h2 {
   text-align: center;
@@ -38,7 +32,48 @@ h2 {
   color: transparent;
 }
 
-form {
+header.header {
+  display: flex;
+  justify-content: center;
+  padding-top: 1rem;
+}
+
+.divider {
+  height: 1px;
+  background: #333;
+  border: none;
+  margin: 0 0 1rem;
+}
+
+main {
+  max-width: 640px;
+  width: 100%;
+}
+
+.game-wrapper {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.game-wrapper iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.card {
+  background: #222;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.card form {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -48,18 +83,32 @@ input,
 button {
   padding: 0.75rem;
   font-size: 1rem;
-  border: none;
   border-radius: 5px;
+  border: none;
 }
 
 button {
-  background-color: #55e6a5;
-  color: #111;
   cursor: pointer;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
 }
 
-#status-message {
-  margin: 1rem 0;
+button.primary {
+  background: #55e6a5;
+  color: #111;
+}
+
+button.secondary {
+  background: transparent;
+  color: #55e6a5;
+  border: 1px solid #55e6a5;
+}
+
+#status {
+  margin-top: 0.5rem;
   padding: 0.75rem 1rem;
   border-radius: 6px;
   color: #fff;
@@ -69,20 +118,20 @@ button {
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-#status-message.show {
+#status.show {
   opacity: 1;
   transform: none;
 }
 
-#status-message.success {
+#status.success {
   background: #2ecc71;
 }
 
-#status-message.error {
+#status.error {
   background: #e74c3c;
 }
 
-#status-message.info {
+#status.info {
   background: #3498db;
 }
 
@@ -100,28 +149,56 @@ ul {
 li {
   background: #222;
   margin-bottom: 0.5rem;
-  padding: 0.75rem;
+  padding: 0 0.75rem;
   border-radius: 8px;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  height: 56px;
   transition: box-shadow 0.2s, transform 0.2s;
 }
 
 li:hover {
-  transform: scale(1.02);
-  box-shadow: 0 2px 6px rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+li.first {
+  border: 2px solid transparent;
+  background: linear-gradient(#222, #222) padding-box,
+    linear-gradient(45deg, #f6d365, #fda085) border-box;
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
 }
 
 .avatar {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
   color: #111;
+}
+
+.score {
+  margin-left: auto;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-family: 'Courier New', monospace;
+}
+
+.trophy {
+  margin-left: 0.25rem;
+}
+
+.tie-badge {
+  background: #555;
+  border-radius: 4px;
+  padding: 0 4px;
+  font-size: 0.7rem;
+  margin-left: 4px;
 }
 
 .delta {
@@ -184,12 +261,34 @@ li.score-updated {
   width: 100%;
 }
 
-#syncBtn {
-  display: block;
+#syncBtn,
+#downloadBtn {
   width: 100%;
+}
+
+#syncBtn {
+  margin-top: 12px;
+}
+
+#downloadBtn {
   margin-top: 10px;
-  padding: 0.75rem;
-  border-radius: 6px;
+}
+
+button.loading::after {
+  content: "";
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .logo {
