@@ -19,7 +19,6 @@ const leaderboard = document.getElementById("leaderboard");
 const toggleBtn = document.getElementById("toggleBtn");
 const lastUpdatedEl = document.getElementById("lastUpdated");
 const syncBtn = document.getElementById("syncBtn");
-const downloadBtn = document.getElementById("downloadBtn");
 const banner = document.getElementById("banner");
 const statusEl = document.getElementById("status");
 
@@ -344,28 +343,13 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-syncBtn.addEventListener("click", syncScores);
-downloadBtn.addEventListener("click", downloadCSV);
+  syncBtn.addEventListener("click", syncScores);
 
-function downloadCSV() {
-  const rows = ["name,score"]; // header
-  scores
-    .slice()
-    .sort((a, b) => b.score - a.score)
-    .forEach((s) => rows.push(`${s.name},${fmt(s.score)}`));
-  const blob = new Blob([rows.join("\n")], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "scores.csv";
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
+  nameInput.value = localStorage.getItem("playerName") || "";
 
-nameInput.value = localStorage.getItem("playerName") || "";
-
-validateSetup();
-loadScores();
-setInterval(loadScores, 25000);
+  validateSetup();
+  loadScores();
+  setInterval(loadScores, 25000);
 
 function checkLeaderChange(data) {
   const leader = data[0] ? data[0].name : undefined;
