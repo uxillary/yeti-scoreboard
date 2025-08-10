@@ -6,6 +6,7 @@ const CONFIG = {
   ADMIN_KEY: "yeti_38ksL9Q2mA!",
   TOP_N: 10,
   COOLDOWN_MS: 4000,
+  REFRESH_MS: 60000,
 };
 
 console.log("⚠ Using hardcoded admin key — scoreboard is not secure.");
@@ -383,7 +384,7 @@ document.addEventListener("keydown", (e) => {
 
   validateSetup();
   loadScores();
-  setInterval(loadScores, 25000);
+  setInterval(loadScores, CONFIG.REFRESH_MS);
 
 function checkLeaderChange(data) {
   const leader = data[0] ? data[0].name : undefined;
