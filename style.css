@@ -200,7 +200,8 @@ li.first {
 .score {
   display: flex;
   align-items: center;
-  text-align: right;
+  justify-content: flex-start;
+  text-align: left;
 }
 
 .score-num {
