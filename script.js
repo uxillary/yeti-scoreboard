@@ -136,6 +136,10 @@ function updateLeaderboard(data = scores) {
         index + 1
       }`;
 
+    // icons column
+    const icons = document.createElement("div");
+    icons.className = "icons";
+
     const rankSpan = document.createElement("span");
     rankSpan.textContent = rank;
 
@@ -144,7 +148,14 @@ function updateLeaderboard(data = scores) {
     avatar.style.backgroundColor = colorFromName(entry.name);
     avatar.textContent = getInitials(entry.name);
 
+    icons.append(rankSpan, avatar);
+
+    // name + delta
+    const nameWrap = document.createElement("div");
+    nameWrap.className = "namewrap";
+
     const nameSpan = document.createElement("span");
+    nameSpan.className = "name";
     nameSpan.textContent = entry.name;
     if (ties.has(entry.name)) {
       const tie = document.createElement("span");
@@ -153,24 +164,47 @@ function updateLeaderboard(data = scores) {
       nameSpan.appendChild(tie);
     }
 
-    const scoreSpan = document.createElement("span");
-    scoreSpan.className = "score";
-    scoreSpan.textContent = fmt(entry.score);
+    const deltaSlot = document.createElement("span");
+    deltaSlot.className = "delta-slot";
+    const deltaFx = document.createElement("span");
+    deltaFx.className = "delta-fx";
+    deltaFx.setAttribute("aria-hidden", "true");
+    deltaSlot.appendChild(deltaFx);
 
-    li.append(rankSpan, avatar, nameSpan, scoreSpan);
+    nameWrap.append(nameSpan, deltaSlot);
+
+    // score column
+    const scoreDiv = document.createElement("div");
+    scoreDiv.className = "score";
+
+    const scoreNum = document.createElement("span");
+    scoreNum.className = "score-num";
+    scoreNum.textContent = fmt(entry.score);
+    scoreDiv.appendChild(scoreNum);
 
     if (index === 0) {
       const trophy = document.createElement("span");
       trophy.className = "trophy";
       trophy.textContent = "🏆";
-      li.appendChild(trophy);
+      scoreDiv.appendChild(trophy);
     }
 
+    li.append(icons, nameWrap, scoreDiv);
+
     if (entry.delta && entry.delta > 0) {
-      const deltaSpan = document.createElement("span");
-      deltaSpan.className = "delta";
-      deltaSpan.textContent = `+${fmt(entry.delta)}`;
-      li.appendChild(deltaSpan);
+      deltaFx.textContent = `+${fmt(entry.delta)}`;
+      deltaFx.classList.remove("show");
+      setTimeout(() => {
+        deltaFx.classList.add("show");
+      }, 500);
+      deltaFx.addEventListener(
+        "animationend",
+        () => {
+          deltaFx.classList.remove("show");
+          deltaFx.textContent = "";
+        },
+        { once: true }
+      );
       delete entry.delta;
     }
 
