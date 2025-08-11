@@ -19,7 +19,6 @@ const submitBtn = document.getElementById("submitBtn");
 const leaderboard = document.getElementById("leaderboard");
 const toggleBtn = document.getElementById("toggleBtn");
 const lastUpdatedEl = document.getElementById("lastUpdated");
-const syncBtn = document.getElementById("syncBtn");
 const banner = document.getElementById("banner");
 const statusEl = document.getElementById("status");
 
@@ -285,18 +284,20 @@ async function postScores(data) {
   }
 }
 
-async function syncScores() {
+async function syncScores(btn) {
   setStatus("Syncing...", "info");
-  setLoading(syncBtn, true);
+  setLoading(btn, true);
   try {
     await postScores(scores);
     setStatus("Scores synced ✅", "success");
     checkLeaderChange(scores);
+    return true;
   } catch (err) {
     console.error("Sync failed", err);
     setStatus(`Sync failed: ${err.message}`, "error");
+    return false;
   } finally {
-    setLoading(syncBtn, false);
+    setLoading(btn, false);
   }
 }
 
@@ -329,26 +330,18 @@ form.addEventListener("submit", async (e) => {
   localStorage.setItem("scores", JSON.stringify(scores));
   localStorage.setItem("playerName", name);
   updateLeaderboard(scores);
-
-  setStatus("Syncing...", "info");
-  setLoading(submitBtn, true);
-  try {
-    await postScores(scores);
-    setStatus("Scores synced ✅", "success");
-    checkLeaderChange(scores);
-  } catch (err) {
-    console.error("Submit failed", err);
+  const success = await syncScores(submitBtn);
+  if (!success) {
+    console.error("Submit failed");
     scores = prev;
     localStorage.setItem("scores", JSON.stringify(scores));
     updateLeaderboard(scores);
-    setStatus(`Sync failed: ${err.message}`, "error");
-  } finally {
-    setLoading(submitBtn, false);
-    form.reset();
-    nameInput.value = name;
-    scoreInput.focus();
-    startCooldown();
   }
+
+  form.reset();
+  nameInput.value = name;
+  scoreInput.focus();
+  startCooldown();
 });
 
 function startCooldown() {
@@ -378,13 +371,11 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-  syncBtn.addEventListener("click", syncScores);
+nameInput.value = localStorage.getItem("playerName") || "";
 
-  nameInput.value = localStorage.getItem("playerName") || "";
-
-  validateSetup();
-  loadScores();
-  setInterval(loadScores, CONFIG.REFRESH_MS);
+validateSetup();
+loadScores();
+setInterval(loadScores, CONFIG.REFRESH_MS);
 
 function checkLeaderChange(data) {
   const leader = data[0] ? data[0].name : undefined;
